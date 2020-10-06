@@ -14,13 +14,13 @@
 #define FALSE  -1
 #define TRUE   0
 
- extern float acce[3],gyro[3];
+ extern double acce[3],gyro[3],gyro_degree[3];;
  extern double q0, q1 , q2 , q3 ;
  extern double p_w[3];     //position in world frame
  extern double v_w[3];      //velocity in world frame 
  extern int order;
  extern signed int acc_uint[3],gyr_uint[3];
- extern double Bias_X,Bias_y,Bias_z,Scale_x,Scale_y,Scale_z;
+ extern double AccBias[3],AccScale[3],GyroBias[3],GyroScale[3];
 
  
  /*******************************************************************
@@ -86,3 +86,20 @@ int UART0_Recv(int fd, char *rcv_buf);
 *******************************************************************/
 int UART0_Send(int fd, char *send_buf,int data_len);
 
+/******************************************************************
+ * 名称：　SetAccAndGyroBiasAndScale
+ * 功能：　设置加速度计和陀螺仪的零偏
+ * 入口参数：　看参数变量名
+ * 出口参数：　成功返回１，失败返回０
+ * 作者：　王明旺，2020/10/6
+ ******************************************************************/
+int SetAccAndGyroBiasAndScale(double accBias[3],double accScale[3],double gyroBias[3],double gyroScale[3]);
+
+/******************************************************************
+ * CorrectImuData
+ * 功能：　使用加速度计和陀螺仪的零偏以及比例误差纠正原始
+ * 入口参数：　看参数变量名
+ * 出口参数：　成功返回１，失败返回０
+ * 作者：　王明旺，2020/10/6
+ ******************************************************************/
+int CorrectImuData(double *accData,double *gyroData);

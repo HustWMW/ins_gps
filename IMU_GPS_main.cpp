@@ -16,18 +16,25 @@ int main()
     int len;                        
     char rcv_buf[100];  
     long int main_counter = 0;
-    double gyro_degree[3];
     fd = UART0_Open(fd); //打开串口，返回文件描述符
     do {
 	    err = UART0_Init(fd,460800,0,8,1,'N');
 	    printf("Set Port Exactly!\n");
 	  }while(FALSE == err || FALSE == fd);
-	
+    //double Bias_x = 0.00081894045;  //寒假在家自己标定的，误差很大，需要更精确的平台来获取标定数据。
+    //double Bias_y = -0.0172993811;
+    //double Bias_z = -0.043428385;
+    //double Scale_x = 1.00293068445;
+    //double Scale_y = 1.0012066569;
+    //double Scale_z = 1.003699648;
+    double AB[3] = {0.00081894045,-0.0172993811,-0.043428385},AS[3] = {2.00293068445,1.0012066569,1.003699648},GB[3] = {0.0,0.0,0.0},GS[3] = {1.0,1.0,1.0};
+    SetAccAndGyroBiasAndScale(AB,AS,GB,GS);
     cout.width(10);
     cout.unsetf(ios::left);
     while (1) { //循环读取数据
       int read_out = UART0_Recv(fd, rcv_buf);
       if (read_out ==1) {
+        CorrectImuData(acce,gyro);
         gyro_degree[0] = degree2arc(gyro[0]);
         gyro_degree[1] = degree2arc(gyro[1]);
         gyro_degree[2] = degree2arc(gyro[2]);

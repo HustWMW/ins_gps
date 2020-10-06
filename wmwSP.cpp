@@ -10,18 +10,13 @@
 #include<math.h>
 #include"wmwSP.h"
 
-float acce[3],gyro[3];
+double acce[3],gyro[3],gyro_degree[3];;
 double q0, q1 , q2 , q3 ;
 double p_w[3];     //position in world frame
 double v_w[3];      //velocity in world frame 
 int order =0;
 signed int acc_uint[3],gyr_uint[3];
-double Bias_x = 0.00081894045;
-double Bias_y = -0.0172993811;
-double Bias_z = -0.043428385;
-double Scale_x = 1.00293068445;
-double Scale_y = 1.0012066569;
-double Scale_z = 1.003699648;
+double AccBias[3],AccScale[3],GyroBias[3],GyroScale[3];
 
 int UART0_Open(int fd)
 {
@@ -228,61 +223,79 @@ int UART0_Recv(int fd, char *rcv_buf)
    
     //使用select实现串口的多路通信
     fs_sel = select(fd+1,&fs_read,NULL,NULL,&time);
-    if(fs_sel)
-    {
+    if (fs_sel) {
       len=read(fd,rcv_buf,32);
-      if(len == 32)
-      {
-	for(int i=0;i<len;i++)
-	{
-	  temp[i]=(unsigned char)rcv_buf[i];
-	  //printf(" %x ",temp[i]);
-	  //printf(" %d ",temp[i]);
-	}
-	//printf("   %d\n ",len);
-	acc_uint[0] = (((temp[7]&0xFF)<<24)|((temp[6]&0xFF)<<16)|((temp[5]&0xFF)<<8)|(temp[4]));
-	acc_uint[1] = (((temp[11]&0xFF)<<24)|((temp[10]&0xFF)<<16)|((temp[9]&0xFF)<<8)|(temp[8]));
-	acc_uint[2] = (((temp[15]&0xFF)<<24)|((temp[14]&0xFF)<<16)|((temp[13]&0xFF)<<8)|(temp[12]));
-	//printf("  %f\n ",acce[0]);
-	acce[0] = (acc_uint[0]/52428800.0-Bias_x)/Scale_x;
-	acce[1] = (acc_uint[1]/52428800.0-Bias_y)/Scale_y;
-	acce[2] = (acc_uint[2]/52428800.0-Bias_z)/Scale_z;
-	
-	gyr_uint[0] = (((temp[19]&0xFF)<<24)|((temp[18]&0xFF)<<16)|((temp[17]&0xFF)<<8)|(temp[16]));
-	gyr_uint[1] = (((temp[23]&0xFF)<<24)|((temp[22]&0xFF)<<16)|((temp[21]&0xFF)<<8)|(temp[20]));
-	gyr_uint[2] = (((temp[27]&0xFF)<<24)|((temp[26]&0xFF)<<16)|((temp[25]&0xFF)<<8)|(temp[24]));
-	gyro[0] = gyr_uint[0]/655360.0;
-	gyro[1] = gyr_uint[1]/655360.0;
-	gyro[2] = gyr_uint[2]/655360.0;
-	
-	//printf("%5d  Acc:%-10f,%-10f,%-10f, Gyr:%-10f,%-10f,%-10f\n ",order,acce[0],acce[1],acce[2],gyro[0],gyro[1],gyro[2]);
-	order++;
+      if (len == 32) {
+      for(int i=0;i<len;i++) {
+         temp[i]=(unsigned char)rcv_buf[i];
+         //printf(" %x ",temp[i]);
+         //printf(" %d ",temp[i]);
+      }
+      //printf("   %d\n ",len);
+      acc_uint[0] = (((temp[7]&0xFF)<<24)|((temp[6]&0xFF)<<16)|((temp[5]&0xFF)<<8)|(temp[4]));
+      acc_uint[1] = (((temp[11]&0xFF)<<24)|((temp[10]&0xFF)<<16)|((temp[9]&0xFF)<<8)|(temp[8]));
+      acc_uint[2] = (((temp[15]&0xFF)<<24)|((temp[14]&0xFF)<<16)|((temp[13]&0xFF)<<8)|(temp[12]));
+      //printf("  %f\n ",acce[0]);
+      acce[0] = -acc_uint[0]/52428800.0;
+      acce[1] = -acc_uint[1]/52428800.0;
+      acce[2] = -acc_uint[2]/52428800.0;
+      
+      gyr_uint[0] = (((temp[19]&0xFF)<<24)|((temp[18]&0xFF)<<16)|((temp[17]&0xFF)<<8)|(temp[16]));
+      gyr_uint[1] = (((temp[23]&0xFF)<<24)|((temp[22]&0xFF)<<16)|((temp[21]&0xFF)<<8)|(temp[20]));
+      gyr_uint[2] = (((temp[27]&0xFF)<<24)|((temp[26]&0xFF)<<16)|((temp[25]&0xFF)<<8)|(temp[24]));
+      gyro[0] = -gyr_uint[0]/655360.0;
+      gyro[1] = -gyr_uint[1]/655360.0;
+      gyro[2] = -gyr_uint[2]/655360.0;
+      
+      //printf("%5d  Acc:%-10f,%-10f,%-10f, Gyr:%-10f,%-10f,%-10f\n ",order,acce[0],acce[1],acce[2],gyro[0],gyro[1],gyro[2]);
+      order++;
       }
       return 1;
 		      
-    }
-    else
-    {
-	printf("select wrong");
-        return 0;
-    }     
+   } 
+   else {
+	   printf("select wrong");
+      return 0;
+   }     
 }
 
 int UART0_Send(int fd, char *send_buf,int data_len)
 {
-    int len = 0;
+   int len = 0;
    
-    len = write(fd,send_buf,data_len);
-    if (len == data_len )
-    {
-       return len;
-    }     
-    else   
-    {
-               
-       tcflush(fd,TCOFLUSH);
-       return FALSE;
-    }
+   len = write(fd,send_buf,data_len);
+   if (len == data_len) {
+      return len;
+   }     
+   else {
+      tcflush(fd,TCOFLUSH);
+      return FALSE;
+   }
    
 }
 
+
+int SetAccAndGyroBiasAndScale(double accBias[3],double accScale[3],double gyroBias[3],double gyroScale[3])
+{
+   for(int i=0;i<3;i++) {
+      AccBias[i]   = accBias[i];
+      AccScale[i]  = accScale[i];
+      GyroBias[i]  = gyroBias[i];
+      GyroScale[i] = gyroScale[i];
+   }
+   return 1;
+}
+
+int CorrectImuData(double *accData,double *gyroData)
+{
+   int accDataLength = sizeof(accData)/sizeof(accData[0]);
+   int gyroDataLength = sizeof(gyroData)/sizeof(gyroData[0]);
+   if ((accDataLength != 3)||(gyroDataLength !=3)) {
+      return 0;
+   }
+   for( int i=0; i<3; i++) {
+      accData[i] = (accData[i] - AccBias[i])/AccScale[i];
+      gyroData[i] = (gyroData[i] - GyroBias[i])/GyroScale[i];
+   }
+   return 1;
+}
