@@ -10,13 +10,16 @@
 #include<math.h>
 #include"wmwSP.h"
 
-double acce[3],gyro[3],gyro_degree[3];;
-double q0, q1 , q2 , q3 ;
-double p_w[3];     //position in world frame
-double v_w[3];      //velocity in world frame 
-int order =0;
+// double acce[3],gyro[3],gyro_degree[3];;
+// double q0, q1 , q2 , q3 ;
+// double p_w[3];     //position in world frame
+// double v_w[3];      //velocity in world frame 
+// int order =0;
 signed int acc_uint[3],gyr_uint[3];
-double AccBias[3],AccScale[3],GyroBias[3],GyroScale[3];
+Eigen::Vector3d AccBias,AccScale,GyroBias,GyroScale;
+
+Eigen::Vector3d acce, gyro;
+bool first_flag = true, find_dollar = false;
 
 int UART0_Open(int fd)
 {
@@ -205,53 +208,72 @@ int UART0_Init(int fd, int speed,int flow_ctrl,int databits,int stopbits,int par
 
 int UART0_Recv(int fd, char *rcv_buf)
 {
-    int len,fs_sel;
-    fd_set fs_read;
-    short int one,two,three,four;
-    int data[24];
-    unsigned int temp[9];
-    short sum;
-    memset(rcv_buf,'\0',sizeof(rcv_buf));
-   
-    struct timeval time;
-   
-    FD_ZERO(&fs_read);
-    FD_SET(fd,&fs_read);
-   
-    time.tv_sec = 0;
-    time.tv_usec = 20000;
-   
-    //使用select实现串口的多路通信
-    fs_sel = select(fd+1,&fs_read,NULL,NULL,&time);
-    if (fs_sel) {
-      len=read(fd,rcv_buf,32);
-      if (len == 32) {
-      for(int i=0;i<len;i++) {
-         temp[i]=(unsigned char)rcv_buf[i];
-         //printf(" %x ",temp[i]);
-         //printf(" %d ",temp[i]);
+   int len,fs_sel;
+   fd_set fs_read;
+   short int one,two,three,four;
+   int data[24];
+   unsigned int temp[9];
+   short sum;
+   memset(rcv_buf,'\0',sizeof(rcv_buf));
+   find_dollar = false;
+   struct timeval time;
+
+   FD_ZERO(&fs_read);
+   FD_SET(fd,&fs_read);
+
+   time.tv_sec = 0;
+   time.tv_usec = 20000;
+
+   //使用select实现串口的多路通信
+   fs_sel = select(fd+1,&fs_read,NULL,NULL,&time);
+   if (fs_sel) {
+      while(first_flag)
+      {
+         len = read(fd,rcv_buf,1);
+         if ( (unsigned char) rcv_buf[0] == 0x24) {
+            first_flag = false;
+            find_dollar = true;
+            //printf("Find dollar $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$4\n");
+         }
+
       }
-      //printf("   %d\n ",len);
-      acc_uint[0] = (((temp[7]&0xFF)<<24)|((temp[6]&0xFF)<<16)|((temp[5]&0xFF)<<8)|(temp[4]));
-      acc_uint[1] = (((temp[11]&0xFF)<<24)|((temp[10]&0xFF)<<16)|((temp[9]&0xFF)<<8)|(temp[8]));
-      acc_uint[2] = (((temp[15]&0xFF)<<24)|((temp[14]&0xFF)<<16)|((temp[13]&0xFF)<<8)|(temp[12]));
-      //printf("  %f\n ",acce[0]);
-      acce[0] = -acc_uint[0]/52428800.0;
-      acce[1] = -acc_uint[1]/52428800.0;
-      acce[2] = -acc_uint[2]/52428800.0;
-      
-      gyr_uint[0] = (((temp[19]&0xFF)<<24)|((temp[18]&0xFF)<<16)|((temp[17]&0xFF)<<8)|(temp[16]));
-      gyr_uint[1] = (((temp[23]&0xFF)<<24)|((temp[22]&0xFF)<<16)|((temp[21]&0xFF)<<8)|(temp[20]));
-      gyr_uint[2] = (((temp[27]&0xFF)<<24)|((temp[26]&0xFF)<<16)|((temp[25]&0xFF)<<8)|(temp[24]));
-      gyro[0] = -gyr_uint[0]/655360.0;
-      gyro[1] = -gyr_uint[1]/655360.0;
-      gyro[2] = -gyr_uint[2]/655360.0;
-      
-      //printf("%5d  Acc:%-10f,%-10f,%-10f, Gyr:%-10f,%-10f,%-10f\n ",order,acce[0],acce[1],acce[2],gyro[0],gyro[1],gyro[2]);
-      order++;
+      if (!first_flag) {
+         len = read(fd,rcv_buf,1);
+         if ( (unsigned char) rcv_buf[0] == 0x24) {
+            find_dollar = true;
+         }
+         else {
+            find_dollar = false;
+         }
       }
-      return 1;
-		      
+      if (find_dollar) {
+         len=read(fd,rcv_buf,31);
+         if (len == 31) {
+         for(int i=0;i<len;i++) {
+            temp[i]=(unsigned char)rcv_buf[i];
+            //printf(" %x ",temp[i]);
+            //printf(" %d ",temp[i]);
+         }
+         //printf("   %d\n ",len);
+         acc_uint[0] = (((temp[6]&0xFF)<<24)|((temp[5]&0xFF)<<16)|((temp[4]&0xFF)<<8)|(temp[3]));
+         acc_uint[1] = (((temp[10]&0xFF)<<24)|((temp[9]&0xFF)<<16)|((temp[8]&0xFF)<<8)|(temp[7]));
+         acc_uint[2] = (((temp[14]&0xFF)<<24)|((temp[13]&0xFF)<<16)|((temp[12]&0xFF)<<8)|(temp[11]));
+         //printf("  %f\n ",acce[0]);
+         acce[0] = -acc_uint[0]/52428800.0;
+         acce[1] = -acc_uint[1]/52428800.0;
+         acce[2] = -acc_uint[2]/52428800.0;
+
+         gyr_uint[0] = (((temp[18]&0xFF)<<24)|((temp[17]&0xFF)<<16)|((temp[16]&0xFF)<<8)|(temp[15]));
+         gyr_uint[1] = (((temp[22]&0xFF)<<24)|((temp[21]&0xFF)<<16)|((temp[20]&0xFF)<<8)|(temp[19]));
+         gyr_uint[2] = (((temp[26]&0xFF)<<24)|((temp[25]&0xFF)<<16)|((temp[24]&0xFF)<<8)|(temp[23]));
+         gyro[0] = -gyr_uint[0]/655360.0;
+         gyro[1] = -gyr_uint[1]/655360.0;
+         gyro[2] = -gyr_uint[2]/655360.0;
+         return 1;
+         //printf("%5d  Acc:%-10f,%-10f,%-10f, Gyr:%-10f,%-10f,%-10f\n ",order,acce[0],acce[1],acce[2],gyro[0],gyro[1],gyro[2]);
+         //order++;
+         }
+      }      
    } 
    else {
 	   printf("select wrong");
@@ -275,27 +297,34 @@ int UART0_Send(int fd, char *send_buf,int data_len)
 }
 
 
-int SetAccAndGyroBiasAndScale(double accBias[3],double accScale[3],double gyroBias[3],double gyroScale[3])
+int SetAccAndGyroBiasAndScale(Eigen::Vector3d accBias,Eigen::Vector3d accScale,Eigen::Vector3d gyroBias,Eigen::Vector3d gyroScale)
 {
-   for(int i=0;i<3;i++) {
-      AccBias[i]   = accBias[i];
-      AccScale[i]  = accScale[i];
-      GyroBias[i]  = gyroBias[i];
-      GyroScale[i] = gyroScale[i];
-   }
+      AccBias   = accBias;
+      AccScale  = accScale;
+      GyroBias  = gyroBias;
+      GyroScale = gyroScale;
+   printf("SetAccAndGyroBiasAndScale ***********************************\n");
+   printf("AccBias:%-10f,%-10f,%-10f;  AccScale:%-10f,%-10f,%-10f; GyroBias:%-10f,%-10f,%-10f; GyroScale:%-10f,%-10f,%-10f;\n",
+           AccBias[0],AccBias[1],AccBias[2],AccScale[0],AccScale[1],AccScale[2],
+           GyroBias[0],GyroBias[1],GyroBias[2],GyroScale[0],GyroScale[1],GyroScale[2]);
    return 1;
 }
 
-int CorrectImuData(double *accData,double *gyroData)
+int CorrectImuData(Eigen::Vector3d &accData,Eigen::Vector3d &gyroData)
 {
-   int accDataLength = sizeof(accData)/sizeof(accData[0]);
-   int gyroDataLength = sizeof(gyroData)/sizeof(gyroData[0]);
-   if ((accDataLength != 3)||(gyroDataLength !=3)) {
-      return 0;
-   }
+   //printf("CorrectImuData***********************************************\n");
+   //int accDataLength = sizeof(accData)/sizeof(accData[0]);
+   //int gyroDataLength = sizeof(gyroData)/sizeof(gyroData[0]);
+   //if ((accDataLength != 3)||(gyroDataLength !=3)) {
+   //   printf("acc And Gyro DataLength: %d, %d\n",accDataLength,gyroDataLength);
+   //   printf("########Acc:%-10f,%-10f,%-10f, Gyr:%-10f,%-10f,%-10f\n ",accData[0],accData[1],accData[2],gyroData[0],gyroData[1],gyroData[2]);
+   //   return 0;
+   //}
    for( int i=0; i<3; i++) {
       accData[i] = (accData[i] - AccBias[i])/AccScale[i];
       gyroData[i] = (gyroData[i] - GyroBias[i])/GyroScale[i];
    }
+   //printf("CorrectImuData***********************************************\n");
+   //printf("")
    return 1;
 }

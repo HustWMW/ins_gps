@@ -12,5 +12,7 @@ add_executable(IMU_GPS
 	wmwSP.h
 	global_var.h
 	global_var.cpp
+	imu.h 
+	imu.cpp
 	)
 

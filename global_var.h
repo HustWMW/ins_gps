@@ -59,4 +59,6 @@ Eigen::Quaterniond rotationVector2Qua(Eigen::Vector3d rotation_vector);
 Eigen::Vector3d Qua2attitude(Eigen::Quaterniond Qnb);
 //Matrix to attitude
 Eigen::Vector3d Matrix2attitude(Eigen::Matrix3d Cnb);
+
+
 #endif

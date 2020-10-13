@@ -1,3 +1,6 @@
+#ifndef ADIS_SERIAL_PORT_H
+#define ADIS_SERIAL_PORT_H
+
 #include<stdio.h>      /*标准输入输出定义*/
 #include<stdlib.h>     /*标准函数库定义*/
 #include<unistd.h>     /*Unix 标准函数定义*/
@@ -8,19 +11,25 @@
 #include<errno.h>      /*错误号定义*/
 #include<string.h>
 #include<math.h>
+#include <Eigen/Core>
+#include <Eigen/Dense>
 
 
 //宏定义
 #define FALSE  -1
 #define TRUE   0
 
- extern double acce[3],gyro[3],gyro_degree[3];;
- extern double q0, q1 , q2 , q3 ;
- extern double p_w[3];     //position in world frame
- extern double v_w[3];      //velocity in world frame 
- extern int order;
- extern signed int acc_uint[3],gyr_uint[3];
- extern double AccBias[3],AccScale[3],GyroBias[3],GyroScale[3];
+//  extern double acce[3],gyro[3],gyro_degree[3];;
+//  extern double q0, q1 , q2 , q3 ;
+//  extern double p_w[3];     //position in world frame
+//  extern double v_w[3];      //velocity in world frame 
+//  extern int order;
+extern signed int acc_uint[3],gyr_uint[3];
+extern bool first_flag, find_dollar;
+extern Eigen::Vector3d AccBias,AccScale,GyroBias,GyroScale;
+
+extern Eigen::Vector3d acce, gyro;
+ 
 
  
  /*******************************************************************
@@ -93,7 +102,7 @@ int UART0_Send(int fd, char *send_buf,int data_len);
  * 出口参数：　成功返回１，失败返回０
  * 作者：　王明旺，2020/10/6
  ******************************************************************/
-int SetAccAndGyroBiasAndScale(double accBias[3],double accScale[3],double gyroBias[3],double gyroScale[3]);
+int SetAccAndGyroBiasAndScale(Eigen::Vector3d accBias,Eigen::Vector3d accScale,Eigen::Vector3d gyroBias,Eigen::Vector3d gyroScale);
 
 /******************************************************************
  * CorrectImuData
@@ -102,4 +111,6 @@ int SetAccAndGyroBiasAndScale(double accBias[3],double accScale[3],double gyroBi
  * 出口参数：　成功返回１，失败返回０
  * 作者：　王明旺，2020/10/6
  ******************************************************************/
-int CorrectImuData(double *accData,double *gyroData);
+int CorrectImuData(Eigen::Vector3d &accData,Eigen::Vector3d &gyroData);
+
+#endif
