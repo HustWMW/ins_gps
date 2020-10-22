@@ -87,7 +87,10 @@ public:
   INS(InitSystemState init_system_state);
   //void SetImuData(Eigen::Vector3d acce,Eigen::Vector3d gyro);
   //利用ＩＭＵ原始数据和纬度信息，进行粗对准　　机械大楼经纬度：114.424937,30.518711
-  static void GetRudeCeb(Eigen::Matrix3d &Ceb,const INSData &cur_data,const EarthPara &cur_earth);
+  static void GetRudeCebMethod1(Eigen::Matrix3d &Ceb,const INSData &average_imu_data,const EarthPara &cur_earth);
+  static void GetRudeCebMethod2(Eigen::Matrix3d &Ceb,const INSData &average_imu_data);
+  //一次修正粗对准
+  static void OneFixCeb(Eigen::Matrix3d &Ceb,const INSData &average_imu_data,const EarthPara &cur_earth);
   //更新有关的地球参数
   static void get_earth_para(InsState ins_state,EarthPara *earth_para);
   //纯惯性导航

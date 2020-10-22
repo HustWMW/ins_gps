@@ -125,6 +125,7 @@ Eigen::Quaterniond rotationVector2Qua(Eigen::Vector3d rotation_vector)
 
 Eigen::Vector3d Matrix2attitude(Eigen::Matrix3d Cnb)
 {
+  //寒假写的
   Eigen::Vector3d attitude;
   if(abs(Cnb(2,1))<=0.999999)
   {
@@ -133,6 +134,9 @@ Eigen::Vector3d Matrix2attitude(Eigen::Matrix3d Cnb)
   else
     attitude << asin(Cnb(2,1)),atan2(Cnb(0,2),Cnb(0,0)),0;
   return attitude;
+
+  //王新龙仿真方法
+  //double psi = atan2((-Cnb(0,1)),Cnb(1,1));
 }
     
 Eigen::Vector3d Qua2attitude(Eigen::Quaterniond Qnb)

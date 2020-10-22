@@ -4,7 +4,7 @@ using namespace std;
 #include <Eigen/Core>
 // 稠密矩阵的代数运算（逆，特征值等）
 #include <Eigen/Dense>
-
+#include "logger.h"
 #include "global_var.h"
 #include "imu.h"
 #include <math.h>
@@ -25,20 +25,47 @@ INS::INS(InitSystemState init_system_state)
 //   INS::cur_data.
 // }
 
-void INS::GetRudeCeb(Eigen::Matrix3d &Ceb,const INSData &cur_data,const EarthPara &cur_earth)
+void INS::GetRudeCebMethod1(Eigen::Matrix3d &Ceb,const INSData &average_imu_data,const EarthPara &cur_earth)
 {
   Ceb << 0.0,    0.0,   1.0/(cur_earth.Gcc(2)*Wie*cur_earth.cos_phi),
          cur_earth.sin_phi/(cur_earth.cos_phi*cur_earth.Gcc(2)),   1.0/(Wie*cur_earth.cos_phi),  0.0,
          -1.0/cur_earth.Gcc(2),   0.0,  0.0;
   //Ceb = Eigen::MatrixXd::Identity(3,3);
   Eigen::Vector3d rb;
-  rb = cur_data.delta_A.cross(cur_data.delta_G);
+  rb = average_imu_data.delta_A.cross(average_imu_data.delta_G);
   Eigen::Matrix3d temp = Eigen::MatrixXd::Identity(3,3);
-  temp.row(0) = cur_data.delta_A.transpose();
+  temp.row(0) = average_imu_data.delta_A.transpose();
   //cout<< " delta_A: "<< temp.row(0) <<endl;
-  temp.row(1) = cur_data.delta_G.transpose();
+  temp.row(1) = average_imu_data.delta_G.transpose();
   temp.row(2) = rb.transpose();
   Ceb = Ceb*temp;
+  LOG(INFO)<<"GetRudeCeb 1";
+}
+
+void INS::GetRudeCebMethod2(Eigen::Matrix3d &Ceb,const INSData &average_imu_data)
+{
+  Eigen::Vector3d fxw;
+  fxw = average_imu_data.delta_A.cross(average_imu_data.delta_G);
+  Eigen::Vector3d fxwxf = fxw.cross(average_imu_data.delta_A);
+  Ceb.row(0) = -(fxw/(fxw.norm())).transpose();
+  //cout<< " delta_A: "<< temp.row(0) <<endl;
+  Ceb.row(1) = (fxwxf/(fxwxf.norm())).transpose();
+  Ceb.row(2) = (average_imu_data.delta_A/(average_imu_data.delta_A.norm())).transpose();
+  LOG(INFO)<<"GetRudeCeb 1";
+}
+
+void INS::OneFixCeb(Eigen::Matrix3d &Ceb,const INSData &average_imu_data,const EarthPara &cur_earth)
+{
+  Eigen::Vector3d phi;
+  Eigen::Vector3d Fn = Ceb*average_imu_data.delta_A;
+  //cout<<" Fn: "<<Fn.transpose()<<" delta_A: "<<average_imu_data.delta_A.transpose()<<endl;
+  Eigen::Vector3d Wnib = Ceb*average_imu_data.delta_G;
+  phi(0) = -Fn(1)/cur_earth.Gcc(2);
+  phi(1) = Fn(0)/cur_earth.Gcc(2);
+  phi(2) = Wnib(0)/(Wie*cur_earth.cos_phi)+Fn(0)*cur_earth.sin_phi/(cur_earth.cos_phi*cur_earth.Gcc(2));
+  cout<<"OneFixPhi:"<<phi.transpose()<<endl;
+  Ceb = (Eigen::MatrixXd::Identity(3,3)+rotationVector2X(phi))*Ceb;
+  LOG(INFO)<<"OneFixCeb";
 }
 
 void INS::get_earth_para(InsState ins_state,EarthPara *earth_para)

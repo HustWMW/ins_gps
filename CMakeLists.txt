@@ -14,5 +14,7 @@ add_executable(IMU_GPS
 	global_var.cpp
 	imu.h 
 	imu.cpp
+	logger.h 
+	logger.cpp
 	)
 

@@ -9,12 +9,13 @@
 #include<string.h>
 #include<math.h>
 #include"wmwSP.h"
+#include"logger.h"
 
 // double acce[3],gyro[3],gyro_degree[3];;
 // double q0, q1 , q2 , q3 ;
 // double p_w[3];     //position in world frame
 // double v_w[3];      //velocity in world frame 
-// int order =0;
+int order =0;
 signed int acc_uint[3],gyr_uint[3];
 Eigen::Vector3d AccBias,AccScale,GyroBias,GyroScale;
 
@@ -212,7 +213,7 @@ int UART0_Recv(int fd, char *rcv_buf)
    fd_set fs_read;
    short int one,two,three,four;
    int data[24];
-   unsigned int temp[9];
+   unsigned int temp[50];
    short sum;
    memset(rcv_buf,'\0',sizeof(rcv_buf));
    find_dollar = false;
@@ -231,41 +232,53 @@ int UART0_Recv(int fd, char *rcv_buf)
       {
          len = read(fd,rcv_buf,1);
          if ( (unsigned char) rcv_buf[0] == 0x24) {
-            first_flag = false;
-            find_dollar = true;
-            //printf("Find dollar $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$4\n");
+            len = read(fd,rcv_buf,3);                     //若发现$表示符，则再往后读三位，判断是否是ＡＤＩ
+            if (((unsigned char) rcv_buf[0] == 0x41) &&
+               ((unsigned char) rcv_buf[1] == 0x44)&&
+               ((unsigned char) rcv_buf[2] == 0x49)) {
+                  first_flag = false;
+                  find_dollar = true;
+                  printf("first try----Find $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
+            }
          }
 
       }
       if (!first_flag) {
          len = read(fd,rcv_buf,1);
          if ( (unsigned char) rcv_buf[0] == 0x24) {
-            find_dollar = true;
+            len = read(fd,rcv_buf,3);                     //若发现$表示符，则再往后读三位，判断是否是ＡＤＩ
+            if (((unsigned char) rcv_buf[0] == 0x41) &&
+               ((unsigned char) rcv_buf[1] == 0x44)&&
+               ((unsigned char) rcv_buf[2] == 0x49)) {
+               find_dollar = true;
+               //printf("Find $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
+            }
          }
          else {
             find_dollar = false;
          }
       }
       if (find_dollar) {
-         len=read(fd,rcv_buf,31);
-         if (len == 31) {
+         len=read(fd,rcv_buf,28);
+         if (len == 28) {
          for(int i=0;i<len;i++) {
             temp[i]=(unsigned char)rcv_buf[i];
             //printf(" %x ",temp[i]);
             //printf(" %d ",temp[i]);
          }
+         //LOG(INFO)<<std::hex<<temp;
          //printf("   %d\n ",len);
-         acc_uint[0] = (((temp[6]&0xFF)<<24)|((temp[5]&0xFF)<<16)|((temp[4]&0xFF)<<8)|(temp[3]));
-         acc_uint[1] = (((temp[10]&0xFF)<<24)|((temp[9]&0xFF)<<16)|((temp[8]&0xFF)<<8)|(temp[7]));
-         acc_uint[2] = (((temp[14]&0xFF)<<24)|((temp[13]&0xFF)<<16)|((temp[12]&0xFF)<<8)|(temp[11]));
+         acc_uint[0] = (((temp[3]&0xFF)<<24)|((temp[2]&0xFF)<<16)|((temp[1]&0xFF)<<8)|(temp[0]));
+         acc_uint[1] = (((temp[7]&0xFF)<<24)|((temp[6]&0xFF)<<16)|((temp[5]&0xFF)<<8)|(temp[4]));
+         acc_uint[2] = (((temp[11]&0xFF)<<24)|((temp[10]&0xFF)<<16)|((temp[9]&0xFF)<<8)|(temp[8]));
          //printf("  %f\n ",acce[0]);
          acce[0] = -acc_uint[0]/52428800.0;
          acce[1] = -acc_uint[1]/52428800.0;
          acce[2] = -acc_uint[2]/52428800.0;
 
-         gyr_uint[0] = (((temp[18]&0xFF)<<24)|((temp[17]&0xFF)<<16)|((temp[16]&0xFF)<<8)|(temp[15]));
-         gyr_uint[1] = (((temp[22]&0xFF)<<24)|((temp[21]&0xFF)<<16)|((temp[20]&0xFF)<<8)|(temp[19]));
-         gyr_uint[2] = (((temp[26]&0xFF)<<24)|((temp[25]&0xFF)<<16)|((temp[24]&0xFF)<<8)|(temp[23]));
+         gyr_uint[0] = (((temp[15]&0xFF)<<24)|((temp[14]&0xFF)<<16)|((temp[13]&0xFF)<<8)|(temp[12]));
+         gyr_uint[1] = (((temp[19]&0xFF)<<24)|((temp[18]&0xFF)<<16)|((temp[17]&0xFF)<<8)|(temp[16]));
+         gyr_uint[2] = (((temp[23]&0xFF)<<24)|((temp[22]&0xFF)<<16)|((temp[21]&0xFF)<<8)|(temp[20]));
          gyro[0] = -gyr_uint[0]/655360.0;
          gyro[1] = -gyr_uint[1]/655360.0;
          gyro[2] = -gyr_uint[2]/655360.0;
@@ -303,28 +316,22 @@ int SetAccAndGyroBiasAndScale(Eigen::Vector3d accBias,Eigen::Vector3d accScale,E
       AccScale  = accScale;
       GyroBias  = gyroBias;
       GyroScale = gyroScale;
-   printf("SetAccAndGyroBiasAndScale ***********************************\n");
-   printf("AccBias:%-10f,%-10f,%-10f;  AccScale:%-10f,%-10f,%-10f; GyroBias:%-10f,%-10f,%-10f; GyroScale:%-10f,%-10f,%-10f;\n",
-           AccBias[0],AccBias[1],AccBias[2],AccScale[0],AccScale[1],AccScale[2],
-           GyroBias[0],GyroBias[1],GyroBias[2],GyroScale[0],GyroScale[1],GyroScale[2]);
+   //printf("SetAccAndGyroBiasAndScale ***********************************\n");
+   //printf("AccBias:%-10f,%-10f,%-10f;  AccScale:%-10f,%-10f,%-10f; GyroBias:%-10f,%-10f,%-10f; GyroScale:%-10f,%-10f,%-10f;\n",
+   //        AccBias[0],AccBias[1],AccBias[2],AccScale[0],AccScale[1],AccScale[2],
+   //        GyroBias[0],GyroBias[1],GyroBias[2],GyroScale[0],GyroScale[1],GyroScale[2]);
+   LOG(INFO) << "SetBiasScale: AccBias:"<<AccBias.transpose()<<" ,AccScale:"<<AccScale.transpose();
+   LOG(INFO) << "SetBiasScale: GyroBias:"<<GyroBias.transpose()<<" ,GyroScale:"<<GyroScale.transpose();
    return 1;
 }
 
 int CorrectImuData(Eigen::Vector3d &accData,Eigen::Vector3d &gyroData)
 {
-   //printf("CorrectImuData***********************************************\n");
-   //int accDataLength = sizeof(accData)/sizeof(accData[0]);
-   //int gyroDataLength = sizeof(gyroData)/sizeof(gyroData[0]);
-   //if ((accDataLength != 3)||(gyroDataLength !=3)) {
-   //   printf("acc And Gyro DataLength: %d, %d\n",accDataLength,gyroDataLength);
-   //   printf("########Acc:%-10f,%-10f,%-10f, Gyr:%-10f,%-10f,%-10f\n ",accData[0],accData[1],accData[2],gyroData[0],gyroData[1],gyroData[2]);
-   //   return 0;
-   //}
    for( int i=0; i<3; i++) {
       accData[i] = (accData[i] - AccBias[i])/AccScale[i];
       gyroData[i] = (gyroData[i] - GyroBias[i])/GyroScale[i];
    }
    //printf("CorrectImuData***********************************************\n");
-   //printf("")
+   LOG(INFO) << "CorrectImuData: Acc:"<<accData.transpose()<<" ,Gyro:"<<gyroData.transpose();
    return 1;
 }
