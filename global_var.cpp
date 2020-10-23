@@ -19,7 +19,7 @@ double arc2degree(double arc)
 		degree += 360;
 	return degree;
 }
-Eigen::Vector3d arc2degree(Eigen::Vector3d arc)
+Eigen::Vector3d arc2degreeVector3d(Eigen::Vector3d arc)
 {
   Eigen::Vector3d degree;
   degree << arc2degree(arc(0)),arc2degree(arc(1)),arc2degree(arc(2));

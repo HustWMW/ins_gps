@@ -47,7 +47,7 @@ typedef struct INS_state_tag
 
 typedef struct INS_data_tag
 {
-  double t;
+  long int t;
   Eigen::Vector3d delta_A;
   Eigen::Vector3d delta_G;
 }INSData;
@@ -83,28 +83,46 @@ typedef struct GPS_data_tag
 class INS
 {
 public:
-  //INS(){};
-  INS(InitSystemState init_system_state);
-  //void SetImuData(Eigen::Vector3d acce,Eigen::Vector3d gyro);
-  //利用ＩＭＵ原始数据和纬度信息，进行粗对准　　机械大楼经纬度：114.424937,30.518711
-  static void GetRudeCebMethod1(Eigen::Matrix3d &Ceb,const INSData &average_imu_data,const EarthPara &cur_earth);
-  static void GetRudeCebMethod2(Eigen::Matrix3d &Ceb,const INSData &average_imu_data);
-  //一次修正粗对准
-  static void OneFixCeb(Eigen::Matrix3d &Ceb,const INSData &average_imu_data,const EarthPara &cur_earth);
-  //更新有关的地球参数
-  static void get_earth_para(InsState ins_state,EarthPara *earth_para);
-  //纯惯性导航
-  static int INS_update(INSData cur_data,INSData pre_data,InsState *cur_state,InsState pre_state,EarthPara &cur_earth);
+  INS(){};
 
+  //利用init_system_state初始化cur_state和pre_state
+  INS(InitSystemState init_system_state);
+
+  //利用ＩＭＵ原始数据和纬度信息，进行粗对准　　机械大楼经纬度：114.424937,30.518711
+  void GetRudeCebMethod1(const INSData &average_imu_data);
+  void GetRudeCebMethod2(const INSData &average_imu_data);
+
+  //一次修正粗对准
+  void OneFixCeb(const INSData &average_imu_data);
+
+  //更新有关的地球参数(使用cur_state计算，结果保存到cur_earth中)
+  void CalculateEarthParamaters();
+
+  //纯惯性导航
+  //int INS_update(INSData cur_data,INSData pre_data,InsState *cur_state,InsState pre_state,EarthPara &cur_earth);
+
+  void SetCurImuData(Eigen::Vector3d acce,Eigen::Vector3d gyro);
+  void SetPreImuData(Eigen::Vector3d acce,Eigen::Vector3d gyro,long int time);
+  void SetCurInsState(InsState CurState) { cur_state = CurState;}
+  void SetPreInsState(InsState PreState) { pre_state = PreState;}
+  void SetCurEarthParamaters(EarthPara CurEarth) { cur_earth = CurEarth;}
+  void SetRudeCeb(Eigen::Matrix3d Ceb) { rude_Ceb = Ceb;}
+
+  INSData GetCurImuData() { return cur_imu_data;}
+  INSData GetPreImuData() { return pre_imu_data;}
   InsState GetCurState() { return cur_state;}
+  InsState GetPreState() { return pre_state;}
+  EarthPara GetCurEarthParamaters() { return cur_earth;}
+  Eigen::Matrix3d GetRudeCeb() { return rude_Ceb;}
+
 private:
-  //Eigen::Matrix3d Ceb;
-  INSData cur_data;
-  INSData pre_data;
+  INSData cur_imu_data;  //加速度单位为Ｇ，使用时需要再乘以cur_earth.GCC(2)
+  INSData pre_imu_data;
   InsState cur_state;
   InsState pre_state;
   EarthPara cur_earth;
-  
+  struct timeval cur_time;
+  Eigen::Matrix3d rude_Ceb;
 };
 
 

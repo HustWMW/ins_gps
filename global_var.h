@@ -40,23 +40,32 @@ using namespace std;
 
 //transform degree to arc 
 double degree2arc(double degree);
+
 //degree [-180, 180]
 double arc2degree(double arc);
+
 //degree [0, 360]
 double arc2degree2(double arc);
-Eigen::Vector3d arc2degree(Eigen::Vector3d arc);
+Eigen::Vector3d arc2degreeVector3d(Eigen::Vector3d arc);
+
 //roration_vector to antisymmetric_matrix
 Eigen::Matrix3d rotationVector2X(Eigen::Vector3d rotation_vector);
+
 //rotation_vector to rotation_matrix
 Eigen::Matrix3d rotationVector2Matrix(Eigen::Vector3d rotation_vector);
+
 //attitude (ZXY) to rotation_matrix
 Eigen::Matrix3d attitude2Matrix(Eigen::Vector3d attitude);
+
 //attitude (ZXY) to Quaterniond
 Eigen::Quaterniond attitude2Qua(Eigen::Vector3d attitude);
+
 //rotation_vector to Quaterniond
 Eigen::Quaterniond rotationVector2Qua(Eigen::Vector3d rotation_vector);
+
 //Quaterniond to attitude (ZXY)
 Eigen::Vector3d Qua2attitude(Eigen::Quaterniond Qnb);
+
 //Matrix to attitude
 Eigen::Vector3d Matrix2attitude(Eigen::Matrix3d Cnb);
 

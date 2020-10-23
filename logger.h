@@ -31,17 +31,17 @@ typedef enum log_rank {
 /// \param info_log_filename 信息文件的名字
 /// \param warn_log_filename 警告文件的名字
 /// \param error_log_filename 错误文件的名字
-void initLogger(const std::string&info_log_filename,
-                const std::string&warn_log_filename,
-                const std::string&error_log_filename);
+// void initLogger(const std::string&info_log_filename,
+//                 const std::string&warn_log_filename,
+//                 const std::string&error_log_filename);
+
+void initLogger(const std::string&log_filename);
  
 ///
 /// \brief 日志系统类
 ///
 class Logger {
-   friend void initLogger(const std::string& info_log_filename,
-                           const std::string& warn_log_filename,
-                           const std::string& erro_log_filename);
+   friend void initLogger(const std::string& log_filename);
    
 public:
          //构造函数
@@ -57,6 +57,10 @@ public:
                                const int line,
                                const std::string& function,
                                const std::string& file);
+
+   /// <param name="fullName">带路径的文件名</param>
+   /// <returns>不带路径的文件名</returns>
+   static std::string GetFileNameWithoutPath(std::string fullName);
    
 private:
    ///
@@ -64,9 +68,7 @@ private:
    ///
    static std::ostream& getStream(log_rank_t log_rank);
    
-   static std::ofstream m_info_log_file;                   ///< 信息日子的输出流
-   static std::ofstream m_warn_log_file;                  ///< 警告信息的输出流
-   static std::ofstream m_error_log_file;                  ///< 错误信息的输出流
+   static std::ofstream log_file;                   ///< 信息的输出流
    log_rank_t m_log_rank;                             ///< 日志的信息的等级
 };
  
