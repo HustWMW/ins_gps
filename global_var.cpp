@@ -3,11 +3,18 @@
 #include <iostream>
 using namespace std;
 
-
+Eigen::Vector3d Weie(0,0,Wie);
 
 double degree2arc(double degree)
 {
 	return (degree*PI/180);
+}
+
+Eigen::Vector3d degree2arcVector3d(Eigen::Vector3d arc)
+{
+  Eigen::Vector3d degree;
+  degree << degree2arc(arc(0)),degree2arc(arc(1)),degree2arc(arc(2));
+  return degree;
 }
 
 double arc2degree(double arc)
@@ -129,14 +136,15 @@ Eigen::Vector3d Matrix2attitude(Eigen::Matrix3d Cnb)
   Eigen::Vector3d attitude;
   if(abs(Cnb(2,1))<=0.999999)
   {
-    attitude << asin(Cnb(2,1)),-atan2(Cnb(2,0),Cnb(2,2)),-atan2(Cnb(0,1),Cnb(1,1));
+    //此顺序是ＸＹＺ，但是attitude中的存储顺序是ＺＸＹ
+    //attitude << asin(Cnb(2,1)),-atan2(Cnb(2,0),Cnb(2,2)),-atan2(Cnb(0,1),Cnb(1,1));
+    
+    attitude << -atan2(Cnb(0,1),Cnb(1,1)),asin(Cnb(2,1)),-atan2(Cnb(2,0),Cnb(2,2));
   }
   else
-    attitude << asin(Cnb(2,1)),atan2(Cnb(0,2),Cnb(0,0)),0;
+    attitude << 0,asin(Cnb(2,1)),atan2(Cnb(0,2),Cnb(0,0));
   return attitude;
 
-  //王新龙仿真方法
-  //double psi = atan2((-Cnb(0,1)),Cnb(1,1));
 }
     
 Eigen::Vector3d Qua2attitude(Eigen::Quaterniond Qnb)
@@ -146,5 +154,9 @@ Eigen::Vector3d Qua2attitude(Eigen::Quaterniond Qnb)
   return attitude;
 }
   
-  
+double RungeKutta2(double deltaT,double preF,double dF0,double dF1)
+{
+  double curF = preF + deltaT*(dF0+dF1)/2.0;
+  return curF;
+}
 

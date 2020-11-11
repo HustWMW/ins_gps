@@ -3,6 +3,7 @@
 #include <ctime>
 #include <iostream>
 #include <string.h>
+#include <unistd.h>    /*getcwd()函数的头文件，为了输出程序运行的路径。*/
  
 std::ofstream Logger::log_file;
 std::string LogLevel[4] = { "INFO","WARNING","REEOR","FATAL"};
@@ -38,6 +39,13 @@ std::string Logger::GetFileNameWithoutPath(std::string fullName)
       size_t position = fullName.find_last_of('/') + 1;
       return fullName.substr(position , fullName.length() - position );
    }
+
+void GetCurrentWorkDir()
+{
+   char *CurrentWorkDir;
+  CurrentWorkDir = getcwd(NULL, 0);
+  LOG(INFO)<< "当前文件运行路径：" << CurrentWorkDir;
+}
  
 Logger::~Logger(){
    getStream(m_log_rank) << std::endl << std::flush;

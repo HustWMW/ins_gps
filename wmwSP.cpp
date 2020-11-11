@@ -10,6 +10,7 @@
 #include<math.h>
 #include"wmwSP.h"
 #include"logger.h"
+#include"global_var.h"
 
 // double acce[3],gyro[3],gyro_degree[3];;
 // double q0, q1 , q2 , q3 ;
@@ -20,7 +21,7 @@ signed int acc_uint[3],gyr_uint[3];
 Eigen::Vector3d AccBias,AccScale,GyroBias,GyroScale;
 
 Eigen::Vector3d acce, gyro;
-bool first_flag = true, find_dollar = false;
+bool run_if_to_check_head = true, find_dollar = false,run_while_to_find_head = true;
 
 int UART0_Open(int fd)
 {
@@ -209,6 +210,7 @@ int UART0_Init(int fd, int speed,int flow_ctrl,int databits,int stopbits,int par
 
 int UART0_Recv(int fd, char *rcv_buf)
 {
+   //printf("UART0_Recv begin !!!!!\n");
    int len,fs_sel;
    fd_set fs_read;
    short int one,two,three,four;
@@ -228,7 +230,7 @@ int UART0_Recv(int fd, char *rcv_buf)
    //使用select实现串口的多路通信
    fs_sel = select(fd+1,&fs_read,NULL,NULL,&time);
    if (fs_sel) {
-      while(first_flag)
+      while(run_while_to_find_head)
       {
          len = read(fd,rcv_buf,1);
          if ( (unsigned char) rcv_buf[0] == 0x24) {
@@ -236,14 +238,14 @@ int UART0_Recv(int fd, char *rcv_buf)
             if (((unsigned char) rcv_buf[0] == 0x41) &&
                ((unsigned char) rcv_buf[1] == 0x44)&&
                ((unsigned char) rcv_buf[2] == 0x49)) {
-                  first_flag = false;
                   find_dollar = true;
-                  printf("first try----Find $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
+                  run_while_to_find_head = false;
+                  run_if_to_check_head = false;
+                  printf("first try--------Find $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
             }
          }
-
       }
-      if (!first_flag) {
+      if (run_if_to_check_head) {
          len = read(fd,rcv_buf,1);
          if ( (unsigned char) rcv_buf[0] == 0x24) {
             len = read(fd,rcv_buf,3);                     //若发现$表示符，则再往后读三位，判断是否是ＡＤＩ
@@ -251,47 +253,52 @@ int UART0_Recv(int fd, char *rcv_buf)
                ((unsigned char) rcv_buf[1] == 0x44)&&
                ((unsigned char) rcv_buf[2] == 0x49)) {
                find_dollar = true;
-               //printf("Find $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
+               printf("\nFind $ADI, data: ");
             }
          }
          else {
             find_dollar = false;
+            run_while_to_find_head = true;
+            return 0;
          }
       }
       if (find_dollar) {
+         run_if_to_check_head = true;
          len=read(fd,rcv_buf,28);
          if (len == 28) {
-         for(int i=0;i<len;i++) {
-            temp[i]=(unsigned char)rcv_buf[i];
-            //printf(" %x ",temp[i]);
-            //printf(" %d ",temp[i]);
-         }
-         //LOG(INFO)<<std::hex<<temp;
-         //printf("   %d\n ",len);
-         acc_uint[0] = (((temp[3]&0xFF)<<24)|((temp[2]&0xFF)<<16)|((temp[1]&0xFF)<<8)|(temp[0]));
-         acc_uint[1] = (((temp[7]&0xFF)<<24)|((temp[6]&0xFF)<<16)|((temp[5]&0xFF)<<8)|(temp[4]));
-         acc_uint[2] = (((temp[11]&0xFF)<<24)|((temp[10]&0xFF)<<16)|((temp[9]&0xFF)<<8)|(temp[8]));
-         //printf("  %f\n ",acce[0]);
-         acce[0] = -acc_uint[0]/52428800.0;
-         acce[1] = -acc_uint[1]/52428800.0;
-         acce[2] = -acc_uint[2]/52428800.0;
+            for(int i=0;i<len;i++) {
+               temp[i]=(unsigned char)rcv_buf[i];
+               //printf(" %x ",temp[i]);
+               //printf(" %d ",temp[i]);
+            }
+            //LOG(INFO)<<std::hex<<temp;
+            //printf("read data\n ");
+            acc_uint[0] = (((temp[3]&0xFF)<<24)|((temp[2]&0xFF)<<16)|((temp[1]&0xFF)<<8)|(temp[0]));
+            acc_uint[1] = (((temp[7]&0xFF)<<24)|((temp[6]&0xFF)<<16)|((temp[5]&0xFF)<<8)|(temp[4]));
+            acc_uint[2] = (((temp[11]&0xFF)<<24)|((temp[10]&0xFF)<<16)|((temp[9]&0xFF)<<8)|(temp[8]));
+            //printf("  %f\n ",acce[0]);
+            acce[0] = -acc_uint[0]/52428800.0;
+            acce[1] = -acc_uint[1]/52428800.0;
+            acce[2] = -acc_uint[2]/52428800.0;
 
-         gyr_uint[0] = (((temp[15]&0xFF)<<24)|((temp[14]&0xFF)<<16)|((temp[13]&0xFF)<<8)|(temp[12]));
-         gyr_uint[1] = (((temp[19]&0xFF)<<24)|((temp[18]&0xFF)<<16)|((temp[17]&0xFF)<<8)|(temp[16]));
-         gyr_uint[2] = (((temp[23]&0xFF)<<24)|((temp[22]&0xFF)<<16)|((temp[21]&0xFF)<<8)|(temp[20]));
-         gyro[0] = -gyr_uint[0]/655360.0;
-         gyro[1] = -gyr_uint[1]/655360.0;
-         gyro[2] = -gyr_uint[2]/655360.0;
-         return 1;
-         //printf("%5d  Acc:%-10f,%-10f,%-10f, Gyr:%-10f,%-10f,%-10f\n ",order,acce[0],acce[1],acce[2],gyro[0],gyro[1],gyro[2]);
-         //order++;
+            gyr_uint[0] = (((temp[15]&0xFF)<<24)|((temp[14]&0xFF)<<16)|((temp[13]&0xFF)<<8)|(temp[12]));
+            gyr_uint[1] = (((temp[19]&0xFF)<<24)|((temp[18]&0xFF)<<16)|((temp[17]&0xFF)<<8)|(temp[16]));
+            gyr_uint[2] = (((temp[23]&0xFF)<<24)|((temp[22]&0xFF)<<16)|((temp[21]&0xFF)<<8)|(temp[20]));
+            gyro[0] = -gyr_uint[0]/655360.0;
+            gyro[1] = -gyr_uint[1]/655360.0;
+            gyro[2] = -gyr_uint[2]/655360.0;
+            gyro = degree2arcVector3d(gyro);
+            printf("　Acc[G]:%-10f,%-10f,%-10f, Gyr[radian]:%-10f,%-10f,%-10f   ",acce[0],acce[1],acce[2],gyro[0],gyro[1],gyro[2]);
+            //order++;
+            return 1;
          }
       }      
    } 
    else {
 	   printf("select wrong");
       return 0;
-   }     
+   }
+   return 0;     
 }
 
 int UART0_Send(int fd, char *send_buf,int data_len)

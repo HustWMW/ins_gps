@@ -37,9 +37,11 @@ using namespace std;
 
 #define INTERVAL 0.01
 
+extern Eigen::Vector3d Weie;
 
 //transform degree to arc 
 double degree2arc(double degree);
+Eigen::Vector3d degree2arcVector3d(Eigen::Vector3d arc);
 
 //degree [-180, 180]
 double arc2degree(double arc);
@@ -66,8 +68,10 @@ Eigen::Quaterniond rotationVector2Qua(Eigen::Vector3d rotation_vector);
 //Quaterniond to attitude (ZXY)
 Eigen::Vector3d Qua2attitude(Eigen::Quaterniond Qnb);
 
-//Matrix to attitude
+//Matrix to attitude(ZXY)
 Eigen::Vector3d Matrix2attitude(Eigen::Matrix3d Cnb);
 
+//龙格库塔方法
+double RungeKutta2(double deltaT,double preF,double dF0,double dF1);
 
 #endif

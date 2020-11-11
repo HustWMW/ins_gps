@@ -35,6 +35,9 @@ typedef enum log_rank {
 //                 const std::string&warn_log_filename,
 //                 const std::string&error_log_filename);
 
+//获取当前程序运行路径
+void GetCurrentWorkDir();
+
 void initLogger(const std::string&log_filename);
  
 ///
@@ -61,6 +64,8 @@ public:
    /// <param name="fullName">带路径的文件名</param>
    /// <returns>不带路径的文件名</returns>
    static std::string GetFileNameWithoutPath(std::string fullName);
+
+   
    
 private:
    ///

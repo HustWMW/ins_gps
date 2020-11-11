@@ -25,7 +25,7 @@
 //  extern double v_w[3];      //velocity in world frame 
 //  extern int order;
 extern signed int acc_uint[3],gyr_uint[3];
-extern bool first_flag, find_dollar;
+extern bool run_if_to_check_head, find_dollar,run_while_to_find_head;
 extern Eigen::Vector3d AccBias,AccScale,GyroBias,GyroScale;
 
 extern Eigen::Vector3d acce, gyro;
